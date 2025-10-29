@@ -1,0 +1,53 @@
+# pytest
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.development"
+python_files = "test_*.py"
+
+# isort
+[tool.isort]
+line_length = 88
+profile = "black"
+known_django = "django"
+known_drf = "rest_framework"
+sections = [
+    "FUTURE",
+    "STDLIB",
+    "THIRDPARTY",
+    "DJANGO",
+    "DRF",
+    "FIRSTPARTY",
+    "LOCALFOLDER",
+]
+multi_line_output = 3
+skip_glob = "**/migrations/*.py"
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+
+# coverage
+[tool.coverage.run]
+omit = [
+    "*migrations*",
+    "*tests*",
+    "*__init__.py",
+    "config/*",
+    "conftest.py",
+    "manage.py",
+]
+plugins = ["django_coverage_plugin"]
+
+[tool.coverage.report]
+omit = [
+    "*migrations*",
+    "*tests*",
+    "*__init__.py",
+    "conf/*",
+    "conftest.py",
+    "manage.py",
+]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+update_changelog_on_bump = true
+hook = true

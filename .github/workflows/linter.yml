@@ -1,0 +1,49 @@
+name: Python Linting
+
+on:
+  pull_request:
+    branches:
+      - staging
+  push:
+    branches:
+      - master
+      - staging
+
+jobs:
+  lint:
+    name: Lint with flake8 and pylint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/development.txt
+
+      - name: Lint with flake8
+        run: |
+          flake8 . \
+            --exclude=*/migrations/*,*/settings/*,__init__.py,asgi.py \
+            --count --max-complexity=10 --max-line-length=120 \
+            --select=E9,F63,F7,F82 \
+            --show-source --statistics
+
+      - name: Lint with pylint
+        run: |
+          pylint config \
+            --ignore-paths=^.*/migrations/.*$,^.*/settings/.*$ \
+            --ignore-patterns=^.*__init__.py,^.*manage.py,^.*asgi.py \
+            --load-plugins=pylint_django,pylint_quotes \
+            --disable=R0903,R0904,C0112,C0114,C0115,W0122,E1101,R0801,W0511,C0103,C0411,R0914,R0912,C0301,W0402,E1102,R0901,W0223,W0201,E1103,C0111,C4002 \
+            --django-settings-module=config.settings \
+            --max-line-length=120 \
+            --string-quote=double \
+            --fail-under=9.97

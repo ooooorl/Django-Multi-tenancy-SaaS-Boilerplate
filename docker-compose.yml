@@ -1,0 +1,73 @@
+services:
+  templatedb:
+    image: postgres:17
+    container_name: templatedb
+    restart: always
+    depends_on:
+      - templateapi
+    environment:
+      POSTGRES_DB: templatedb
+      POSTGRES_USER: djangouser
+      POSTGRES_PASSWORD: djangouser
+    volumes:
+      - templatedb_data:/var/lib/postgresql/data   # Named volume for DB persistence
+      - ./config/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 4432:5432
+
+  templateapi:
+    build:
+      context: .
+    volumes:
+      - .:/django
+    restart: always
+    env_file: .env
+    expose:
+      - 8000  # Expose to Nginx, but not to host
+    entrypoint: ["/entrypoint.sh"]
+    environment:
+      - DJANGO_ENV=development # Set environment variable (production/development) for Django settings
+
+  redis:
+    container_name: redis
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data  # Persist Redis data
+      - ./config/redis/redis.conf:/usr/local/etc/redis/redis.conf # Mount custom config file
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]  # Tell Redis to use the custom config file
+
+  celery:
+    container_name: celery
+    build:
+      context: .
+    command: celery -A config worker -l info --concurrency=6 --pool=threads
+    volumes:
+      - .:/django
+    restart: always
+    env_file: .env
+    depends_on:
+      - templateapi
+      - redis
+      - templatedb
+
+  celery-beat:
+    container_name: celery-beat
+    build:
+      context: .
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/django
+    restart: always
+    env_file: .env
+    depends_on:
+      - templateapi
+      - redis
+      - templatedb
+
+
+volumes:
+  templatedb_data:
+  redis_data:
