@@ -1,7 +1,7 @@
 import os
 from datetime import timedelta
 
-from .base import MIDDLEWARE  # noqa: F403,F405
+from .base import *  # noqa: F403,F405
 
 ALLOWED_HOSTS = ["*"]
 
@@ -31,4 +31,3 @@ SIMPLE_JWT = {
     "TOKEN_OBTAIN_SERIALIZER": "auth.api.v1.serializers.CustomTokenObtainPairSerializer",
     "TOKEN_REFRESH_SERIALIZER": "auth.api.v1.serializers.CustomCookieTokenRefreshSerializer",
 }
-3
