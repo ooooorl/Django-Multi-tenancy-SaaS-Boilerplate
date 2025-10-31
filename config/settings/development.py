@@ -1,7 +1,7 @@
 import os
 from datetime import timedelta
 
-from .base import *  # noqa
+from .base import MIDDLEWARE  # noqa: F403,F405
 
 ALLOWED_HOSTS = ["*"]
 
@@ -16,8 +16,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # Uncomment this one when not using with nginx
-# DEVELOPMENT = ["whitenoise.middleware.WhiteNoiseMiddleware"]
-# MIDDLEWARE += DEVELOPMENT
+MIDDLEWARE += ["whitenoise.middleware.WhiteNoiseMiddleware"]
 
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
@@ -32,3 +31,4 @@ SIMPLE_JWT = {
     "TOKEN_OBTAIN_SERIALIZER": "auth.api.v1.serializers.CustomTokenObtainPairSerializer",
     "TOKEN_REFRESH_SERIALIZER": "auth.api.v1.serializers.CustomCookieTokenRefreshSerializer",
 }
+3
