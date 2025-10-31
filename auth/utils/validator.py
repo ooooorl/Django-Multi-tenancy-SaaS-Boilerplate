@@ -17,5 +17,5 @@ def password_validator(value):
         raise serializers.ValidationError("Password must contain at least one digit.")
     if not re.search(r"[!@#$%^&_*()]", value):
         raise serializers.ValidationError(
-            "Password must contain at least one special character (!@#$%^&_*())."
+            "Password must contain at least one special character (!-@#$&_*())."
         )

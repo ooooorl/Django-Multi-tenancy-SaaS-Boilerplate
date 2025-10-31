@@ -5,7 +5,14 @@ from user.models import User
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ["username", "first_name", "last_name", "is_active", "is_staff"]
+    list_display = [
+        "username",
+        "tenant",
+        "first_name",
+        "last_name",
+        "is_active",
+        "is_staff",
+    ]
     search_fields = ["username", "first_name", "last_name"]
     list_filter = ["is_active"]
     ordering = ["-created_at"]

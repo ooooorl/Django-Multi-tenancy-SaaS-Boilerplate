@@ -10,9 +10,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 env.read_env(os.path.join(BASE_DIR, ".env"))
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env.str("SECRET_KEY", default="insecure-default-secret-key")
 
@@ -35,6 +32,7 @@ SITE_ID = 1
 
 # Application definition
 INSTALLED_APPS: list[str] = [
+    "django.contrib.sites",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -60,11 +58,13 @@ THIRD_PARTY_APPS: list[str] = [
 
 LOCAL_APPS: list[str] = [
     "user.apps.UserConfig",
+    "tenant.apps.TenantConfig",
 ]
 
 INSTALLED_APPS += THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
+    "tenant.middleware.TenantMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -236,6 +236,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# DOMAIN SETTINGS
+MAIN_DOMAIN = env.str("MAIN_DOMAIN")
 
 # Restful Settings
 REST_FRAMEWORK = {
@@ -248,7 +250,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "DEFAULT_THROTTLE_RATES": {"anon": "100/hour", "user": "50/hour"},
+    "DEFAULT_THROTTLE_RATES": {"anon": "50/hour", "user": "100/hour"},
     "DEFAULT_RENDERER_CLASSES": ("rest_framework.renderers.JSONRenderer",),
     "PAGE_SIZE": 10,
 }

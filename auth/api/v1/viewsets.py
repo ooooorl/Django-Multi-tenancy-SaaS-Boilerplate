@@ -27,7 +27,14 @@ class RegisterView(GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         """Handle registration request."""
-        serializer = self.get_serializer(data=request.data)
+        tenant = getattr(request, "tenant", None)
+        if not tenant:
+            return Response(
+                {"detail": "Tenant information is missing."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        serializer = self.get_serializer(data=request.data, context={"tenant": tenant})
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(
@@ -44,8 +51,14 @@ class LoginView(GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         """Handle login request."""
+        tenant = getattr(request, "tenant", None)
+        if not tenant:
+            return Response(
+                {"detail": "Tenant information is missing."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=request.data, context={"tenant": tenant})
         serializer.is_valid(raise_exception=True)
         is_http_cookie_only = request.data.get("is_http_cookie_only", False)
 
@@ -98,7 +111,16 @@ class LogoutView(GenericAPIView):
         """Handle logout request."""
 
         try:
-            serializer = self.get_serializer(data=request.data)
+            tenant = getattr(request, "tenant", None)
+            if not tenant:
+                return Response(
+                    {"detail": "Tenant information is missing."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            serializer = self.get_serializer(
+                data=request.data, context={"request": request, "tenant": tenant}
+            )
             serializer.is_valid(raise_exception=True)
             refresh_token = serializer.validated_data.get("refresh")
             is_http_cookie_only = request.data.get("is_http_cookie_only", False)

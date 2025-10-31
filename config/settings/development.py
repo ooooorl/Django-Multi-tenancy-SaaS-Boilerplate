@@ -1,7 +1,7 @@
 import os
 from datetime import timedelta
 
-from .base import *  # noqa
+from .base import *  # noqa: F403,F405
 
 ALLOWED_HOSTS = ["*"]
 
@@ -16,8 +16,7 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 # Uncomment this one when not using with nginx
-# DEVELOPMENT = ["whitenoise.middleware.WhiteNoiseMiddleware"]
-# MIDDLEWARE += DEVELOPMENT
+MIDDLEWARE += ["whitenoise.middleware.WhiteNoiseMiddleware"]
 
 EMAIL_BACKEND = os.getenv(
     "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"

@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict
 
 from dj_rest_auth.jwt_auth import CookieTokenRefreshSerializer
@@ -13,14 +14,16 @@ from auth.utils.validator import password_validator
 from user.api.v1.serializers import UserSerializer
 from user.models import User
 
+logger = logging.getLogger(__name__)
+
 
 class RegisterUserSerializer(UserSerializer):
-    """Registration Serializer."""
+    """Registration Serializer for User model with email login."""
 
     password = serializers.CharField(
-        min_length=8,
         required=True,
         write_only=True,
+        min_length=8,
         max_length=255,
         style={"input_type": "password"},
         validators=[password_validator],
@@ -30,36 +33,52 @@ class RegisterUserSerializer(UserSerializer):
     )
 
     class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + [
-            "password",
-        ]
+        model = User
+        fields = UserSerializer.Meta.fields + ["password"]
+        read_only_fields = ["is_superuser", "is_staff", "id"]
 
     def create(self, validated_data: Dict[str, Any]) -> User:
-        """
-        Override the create method to make use of the custom create_user method.
-        """
-        username = validated_data.pop("username").strip()
+        """Create a new user with email login."""
+        password = validated_data.pop("password")
+        validated_data["tenant"] = self.context.get("tenant")
+
+        # Set username automatically (since it's still required by AbstractUser)
+        email = validated_data["email"]
+        if "username" not in validated_data or not validated_data["username"]:
+            validated_data["username"] = email.split("@")[0]
 
         with transaction.atomic():
-            user = User.objects.create_user(username=username, **validated_data)
+            user = User(**validated_data)
+            user.set_password(password)
+            user.save()
             return user
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """Custom Login Serializer."""
+    """Custom login serializer that uses email for authentication."""
+
+    # Override fields for clarity
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True)
 
     def validate(self, attrs: Dict[str, Any]) -> Dict:
-        """validate the given credentials."""
-
-        if "username" in attrs:
-            attrs["username"] = attrs["username"].lower()
+        """Validate and return token pair + user data."""
+        # Map `email` → `username` because SimpleJWT expects USERNAME_FIELD
+        tenant = self.context.get("tenant")
+        attrs["username"] = attrs.get("email")
 
         data = super().validate(attrs)
         data["user"] = UserSerializer(self.user).data
 
-        # Update the last timestamp of the user
+        # Enforce that the user belongs to this tenant
+        if self.user.tenant != tenant:
+            raise serializers.ValidationError(
+                {"detail": "User does not belong to this tenant."}
+            )
+
+        # Optionally update last login timestamp
         if api_settings.UPDATE_LAST_LOGIN:
-            update_last_login(None, user=self.user)
+            update_last_login(None, self.user)
 
         return data
 

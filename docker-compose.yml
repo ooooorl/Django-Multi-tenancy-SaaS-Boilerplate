@@ -1,29 +1,31 @@
 services:
-  templatedb:
+  boilerplatedb:
     image: postgres:17
-    container_name: templatedb
+    container_name: boilerplatedb
     restart: always
     depends_on:
-      - templateapi
+      - boilerplateapi
     environment:
-      POSTGRES_DB: templatedb
+      POSTGRES_DB: boilerplatedb
       POSTGRES_USER: djangouser
       POSTGRES_PASSWORD: djangouser
     volumes:
-      - templatedb_data:/var/lib/postgresql/data   # Named volume for DB persistence
+      - boilerplatedb_data:/var/lib/postgresql/data   # Named volume for DB persistence
       - ./config/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - 4432:5432
 
-  templateapi:
+  boilerplateapi:
     build:
       context: .
     volumes:
       - .:/django
     restart: always
     env_file: .env
-    expose:
-      - 8000  # Expose to Nginx, but not to host
+    ports:
+      - "8000:8000"  # Expose port 8000 to the host
+    # expose:
+    #   - 8000  # Expose to Nginx, but not to host
     entrypoint: ["/entrypoint.sh"]
     environment:
       - DJANGO_ENV=development # Set environment variable (production/development) for Django settings
@@ -49,9 +51,9 @@ services:
     restart: always
     env_file: .env
     depends_on:
-      - templateapi
+      - boilerplateapi
       - redis
-      - templatedb
+      - boilerplatedb
 
   celery-beat:
     container_name: celery-beat
@@ -63,11 +65,11 @@ services:
     restart: always
     env_file: .env
     depends_on:
-      - templateapi
+      - boilerplateapi
       - redis
-      - templatedb
+      - boilerplatedb
 
 
 volumes:
-  templatedb_data:
+  boilerplatedb_data:
   redis_data:
