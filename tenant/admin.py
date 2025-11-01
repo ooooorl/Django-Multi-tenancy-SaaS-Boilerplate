@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from tenant.models import Tenant
+from tenant.models import Tenant, TenantPayment
 from user.models import User
 
 
@@ -40,3 +40,23 @@ class TenantAdmin(admin.ModelAdmin):
     readonly_fields = ("created_at", "updated_at")
 
     inlines = [InlineUserAdmin]
+
+
+@admin.register(TenantPayment)
+class TenantPaymentAdmin(admin.ModelAdmin):
+    """Admin interface for TenantPayment model."""
+
+    list_display = (
+        "tenant",
+        "plan",
+        "amount",
+        "provider",
+        "status",
+        "start_date",
+        "end_date",
+        "created_at",
+    )
+    search_fields = ("tenant__name", "provider_subscription_id")
+    ordering = ("-created_at",)
+    list_filter = ("status", "provider", "created_at")
+    readonly_fields = ("created_at", "updated_at")

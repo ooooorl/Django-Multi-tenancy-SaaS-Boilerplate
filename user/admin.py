@@ -10,6 +10,7 @@ class UserAdmin(admin.ModelAdmin):
         "tenant",
         "first_name",
         "last_name",
+        "user_type",
         "is_active",
         "is_staff",
     ]

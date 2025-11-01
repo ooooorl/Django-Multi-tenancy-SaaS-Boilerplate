@@ -1,19 +1,25 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from base.models import BaseModel
+from base.models import OPTIONAL, BaseModel
 
 
 class User(BaseModel, AbstractUser):
+    class UserTypeChoices(models.TextChoices):
+        PLATFORM_ADMIN = "platform admin", "Platform Admin"
+        TENANT_ADMIN = "tenant admin", "Tenant Admin"
+        TENANT = "tenant", "Tenant"
+
     email = models.EmailField(unique=True)
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
     tenant = models.ForeignKey(
-        "tenant.Tenant",
-        on_delete=models.CASCADE,
-        related_name="users",
-        null=True,
-        blank=True,
+        "tenant.Tenant", on_delete=models.CASCADE, related_name="users", **OPTIONAL
+    )
+    user_type = models.CharField(
+        max_length=20,
+        default=UserTypeChoices.TENANT,
+        choices=UserTypeChoices.choices,
     )
 
     def __str__(self):
