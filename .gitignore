@@ -211,3 +211,10 @@ staticfiles
 
 # Avoid committing local settings files
 config/settings/development.py
+
+# SSL / Certificates
+*.crt
+*.pem
+*.key
+/etc/letsencrypt/
+config/nginx/certs/

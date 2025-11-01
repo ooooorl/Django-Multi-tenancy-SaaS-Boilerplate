@@ -8,8 +8,8 @@ Werkzeug==2.3.4
 # Linting & Testing Tools
 flake8
 flake8-quotes
-pylint~=2.17
 pylint-django
 pylint-quotes
 pytest
 pytest-django
+pylint==3.2.7
