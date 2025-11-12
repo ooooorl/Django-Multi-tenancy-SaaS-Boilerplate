@@ -12,28 +12,28 @@ jobs:
     runs-on: ubuntu-latest
     environment: staging
 
-    # Global environment variables
     env:
-      DATABASE_ENGINE: ${{ vars.DATABASE_ENGINE }}
-      DATABASE_NAME: ${{ vars.DATABASE_NAME }}
       DATABASE_USER: ${{ vars.DATABASE_USER }}
-      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
-      DATABASE_PORT: ${{ vars.DATABASE_PORT }}
+      DATABASE_NAME: ${{ vars.DATABASE_NAME }}
+      DATABASE_ENGINE: ${{ vars.DATABASE_ENGINE }}
       DATABASE_HOST: ${{ vars.DATABASE_HOST }}
+      DATABASE_PORT: ${{ vars.DATABASE_PORT }}
+      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
       DJANGO_SETTINGS_MODULE: ${{ vars.DJANGO_SETTINGS_MODULE }}
       MAIN_DOMAIN: ${{ vars.MAIN_DOMAIN }}
       SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      PYTHON_VERSION: ${{ vars.PYTHON_VERSION }}
       DEBUG: ${{ vars.DEBUG }}
 
     services:
       postgres:
-        image: postgres:15
+        image: ${{ vars.POSTGRE_IMAGE_VERSION }}
         env:
           POSTGRES_DB: ${{ vars.DATABASE_NAME }}
           POSTGRES_USER: ${{ vars.DATABASE_USER }}
           POSTGRES_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
         ports:
-          - ${{ vars.DATABASE_PORT }}:${{ vars.DATABASE_PORT }}
+          - ${{ vars.DATABASE_PORT || '5432' }}:${{ vars.DATABASE_PORT || '5432' }}
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -44,10 +44,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ vars.PYTHON_VERSION }}
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ vars.PYTHON_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Cache Python dependencies
         uses: actions/cache@v4
@@ -65,7 +65,7 @@ jobs:
 
       - name: Wait for PostgreSQL to be ready
         run: |
-          until pg_isready -h "$DATABASE_HOST" -p 5432; do sleep 1; done
+          until pg_isready -h "$DATABASE_HOST" -p "$DATABASE_PORT"; do sleep 1; done
 
       - name: Run database migrations
         run: python manage.py migrate

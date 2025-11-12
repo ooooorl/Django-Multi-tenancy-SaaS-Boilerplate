@@ -218,3 +218,6 @@ config/settings/development.py
 *.key
 /etc/letsencrypt/
 config/nginx/certs/
+
+# ENV
+.env-bak
