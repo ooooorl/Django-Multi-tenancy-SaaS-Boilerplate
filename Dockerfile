@@ -35,3 +35,6 @@ RUN chown -R restapi:restapi /django
 
 # Switch to restapi user
 USER restapi
+
+# Entry point
+ENTRYPOINT ["./docker-entrypoint.sh"]
