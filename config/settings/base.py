@@ -122,7 +122,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": env("DATABASE_ENGINE", default="django.db.backends.postgresql"),
-        "NAME": env("DATABASE_NAME", default="templatedb"),
+        "NAME": env("DATABASE_NAME", default="boilerplatedb"),
         "USER": env("DATABASE_USER", default="djangouser"),
         "PASSWORD": env("DATABASE_PASSWORD", default="default_django_password"),
         "HOST": env("DATABASE_HOST", default="localhost"),
