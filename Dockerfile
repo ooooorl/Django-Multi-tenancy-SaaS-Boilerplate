@@ -24,6 +24,7 @@ ADD ./requirements /django/requirements
 RUN pip3 install -r /django/requirements/development.txt
 
 # Copy project files and entrypoint.sh script
+COPY . /django
 COPY ./docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
