@@ -1,4 +1,96 @@
 
+# name: Build Artifact
+
+# on:
+#   workflow_dispatch:
+#     inputs:
+#       env:
+#         description: "Choose environment to build for"
+#         required: true
+#         type: choice
+#         default: staging
+#         options:
+#           - staging
+#           - prod
+
+# jobs:
+#   docker-build:
+#     runs-on: ubuntu-latest
+#     environment: ${{ github.event.inputs.env }}
+
+#     env:
+#       DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
+#       DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+#       IMAGE_NAME: multi-tenancy-backend
+#       ENV_NAME: ${{ github.event.inputs.env }}
+
+#     steps:
+#       - name: Validate branch and environment
+#         run: |
+#           echo "Selected environment: $ENV_NAME"
+#           echo "Branch: ${{ github.ref_name }}"
+
+#           if [[ "$ENV_NAME" == "staging" && "${{ github.ref_name }}" != "staging" ]]; then
+#             echo "ERROR: Staging builds must run from staging branch!"
+#             exit 1
+#           fi
+
+#           if [[ "$ENV_NAME" == "prod" && "${{ github.ref_name }}" != "master" ]]; then
+#             echo "ERROR: Prod builds must run from master branch!"
+#             exit 1
+#           fi
+
+#           echo "✓ Branch and environment match."
+
+#       - name: Checkout repository
+#         uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0
+
+#       # ---------------------------
+#       # 🔥 AUTO VERSIONING FOR PROD
+#       # ---------------------------
+#       - name: Automatic SemVer bump (prod only)
+#         id: semver
+#         if: ${{ env.ENV_NAME == 'prod' }}
+#         uses: mathieudutour/github-tag-action@v6.1
+#         with:
+#           github_token: ${{ secrets.GITHUB_TOKEN }}
+#           default_bump: patch
+#           release_branches: master
+
+#       - name: Determine Tag
+#         id: final_tag
+#         run: |
+#           if [[ "$ENV_NAME" == "prod" ]]; then
+#             TAG="${{ steps.semver.outputs.new_tag }}"
+#             echo "Production tag detected: $TAG"
+#           else
+#             SHORT_SHA=$(git rev-parse --short HEAD)
+#             TAG="staging-$SHORT_SHA"
+#             echo "Staging tag: $TAG"
+#           fi
+
+#           echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+#       # ---------------------------
+#       # 🔥 DOCKER BUILD + PUSH
+#       # ---------------------------
+#       - name: Log in to Docker Hub
+#         uses: docker/login-action@v2
+#         with:
+#           username: ${{ env.DOCKER_HUB_USERNAME }}
+#           password: ${{ env.DOCKER_HUB_ACCESS_TOKEN }}
+
+#       - name: Build Docker image
+#         run: |
+#           docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME:${{ steps.final_tag.outputs.tag }} .
+
+#       - name: Push Docker image
+#         run: |
+#           docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME:${{ steps.final_tag.outputs.tag }}
+
+
 name: Build Artifact
 
 on:
@@ -25,6 +117,9 @@ jobs:
       ENV_NAME: ${{ github.event.inputs.env }}
 
     steps:
+      # ---------------------------
+      # Validate branch ↔ environment
+      # ---------------------------
       - name: Validate branch and environment
         run: |
           echo "Selected environment: $ENV_NAME"
@@ -42,13 +137,16 @@ jobs:
 
           echo "✓ Branch and environment match."
 
+      # ---------------------------
+      # Checkout code
+      # ---------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       # ---------------------------
-      # 🔥 AUTO VERSIONING FOR PROD
+      # Automatic SemVer bump (prod only)
       # ---------------------------
       - name: Automatic SemVer bump (prod only)
         id: semver
@@ -59,22 +157,29 @@ jobs:
           default_bump: patch
           release_branches: master
 
-      - name: Determine Tag
-        id: final_tag
+      # ---------------------------
+      # Determine Docker tags
+      # ---------------------------
+      - name: Determine Docker tags
+        id: docker_tags
         run: |
+          IMAGE="${DOCKER_HUB_USERNAME}/${IMAGE_NAME}"
+          SHORT_SHA=$(git rev-parse --short HEAD)
+
           if [[ "$ENV_NAME" == "prod" ]]; then
-            TAG="${{ steps.semver.outputs.new_tag }}"
-            echo "Production tag detected: $TAG"
+            VERSION="${{ steps.semver.outputs.new_tag }}"
+            # Tags: SemVer, commit SHA, prod-latest
+            echo "DOCKER_TAGS=$IMAGE:$VERSION,$IMAGE:$SHORT_SHA,$IMAGE:prod-latest" >> $GITHUB_OUTPUT
+            echo "Tags for prod: $VERSION, $SHORT_SHA, prod-latest"
           else
-            SHORT_SHA=$(git rev-parse --short HEAD)
-            TAG="staging-$SHORT_SHA"
-            echo "Staging tag: $TAG"
+            STAGING_TAG="staging-$SHORT_SHA"
+            # Tags: staging-<sha>, commit SHA, staging-latest
+            echo "DOCKER_TAGS=$IMAGE:$STAGING_TAG,$IMAGE:$SHORT_SHA,$IMAGE:staging-latest" >> $GITHUB_OUTPUT
+            echo "Tags for staging: $STAGING_TAG, $SHORT_SHA, staging-latest"
           fi
 
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-
       # ---------------------------
-      # 🔥 DOCKER BUILD + PUSH
+      # Docker login
       # ---------------------------
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -82,10 +187,17 @@ jobs:
           username: ${{ env.DOCKER_HUB_USERNAME }}
           password: ${{ env.DOCKER_HUB_ACCESS_TOKEN }}
 
-      - name: Build Docker image
+      # ---------------------------
+      # Build and push Docker image (multi-tag)
+      # ---------------------------
+      - name: Build and push Docker image
         run: |
-          docker build -t $DOCKER_HUB_USERNAME/$IMAGE_NAME:${{ steps.final_tag.outputs.tag }} .
+          IMAGE="${DOCKER_HUB_USERNAME}/${IMAGE_NAME}"
+          TAGS="${{ steps.docker_tags.outputs.DOCKER_TAGS }}"
+          echo "Building and pushing image with tags: $TAGS"
 
-      - name: Push Docker image
-        run: |
-          docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME:${{ steps.final_tag.outputs.tag }}
+          for TAG in $(echo $TAGS | tr ',' ' '); do
+            echo "→ $TAG"
+            docker build -t $TAG .
+            docker push $TAG
+          done
